@@ -1149,24 +1149,17 @@ void updateTournament(sqlite3 *db)
 {
     sqlite3_stmt *stmt;
     
-    // Select tournament
     string query = "SELECT tour_id, tour_name FROM tournament;";
     if (!prepareStatement(db, query, &stmt))
     {
         cout << "Error selecting records: " << sqlite3_errmsg(db) << endl;
-        sqlite3_finalize(stmt);
         return;
     }
 
     string prompt = "Choose the tournament to update: ";
-    // printPages(stmt);
-    // sqlite3_reset(stmt);
-
     int tour_id = selectFromList(db, query, prompt);
-
     sqlite3_finalize(stmt);
 
-    // Choose field
     cout << "Choose field to update: " << endl;
     cout << "1. Tournament name" << endl;
     cout << "2. Tournament date and time" << endl;
@@ -1175,10 +1168,8 @@ void updateTournament(sqlite3 *db)
     cout << "Enter Choice: ";
     int field = getValidatedChoice(1, 4);
 
-    string update_query;
     string column_name;
     
-    // Determine which column to update
     switch (field)
     {
         case 1: column_name = "tour_name"; break;
@@ -1190,17 +1181,17 @@ void updateTournament(sqlite3 *db)
             return;
     }
     
-    query = "UPDATE product SET " + column_name + " = ? WHERE tour_id = ?;";
+    // CORRECTED: Changed 'product' to 'tournament'
+    query = "UPDATE tournament SET " + column_name + " = ? WHERE tour_id = ?;";
     if (!prepareStatement(db, query, &stmt))
     {
         cout << "Error preparing statement: " << sqlite3_errmsg(db) << endl;
         return;
     }
 
-    // Bind values based on field type
     switch (field)
     {
-        case 1: // tournament name
+        case 1:
         {
             string tournament_name;
             cout << "Enter new tournament name: ";
@@ -1209,34 +1200,29 @@ void updateTournament(sqlite3 *db)
             sqlite3_bind_text(stmt, 1, tournament_name.c_str(), -1, SQLITE_TRANSIENT);
             break;
         }
-        case 2: // tournament date and time
+        case 2:
         {
             cout << "Enter new tournament date and time: ";
             string date_time = getDateTimeFromUser();
             sqlite3_bind_text(stmt, 1, date_time.c_str(), -1, SQLITE_TRANSIENT);
             break;
         }
-        case 3: // tournament entry fee
+        case 3:
         {
             cout << "Enter new entry fee: ";
             double entry_fee = getValidatedPrice();
             sqlite3_bind_double(stmt, 1, entry_fee);
             break;
         }
-        case 4: // Maximum number of players
+        case 4:
         {
             cout << "Enter maximum number of players (max player is 16): ";
             int max_players = getValidatedChoice(1, 16);
             sqlite3_bind_int(stmt, 1, max_players);
             break;
         }
-        default:
-            cout << "Invalid choice." << endl;
-            sqlite3_finalize(stmt);
-            return;
     }
     
-    // the tour id might be 1-5 based on the printPage function but the actual tour_id should be in the database 
     sqlite3_bind_int(stmt, 2, tour_id);
     
     if(!executeStatement(stmt))
@@ -1499,51 +1485,51 @@ void viewSale(sqlite3 *db)
 void viewCustomer(sqlite3 *db)
 {
     sqlite3_stmt *stmt;
-    string query = R"(SELECT cus_id, cus_fname '| |' cus_lname, cus_phone, cus_email, membership_status "
+    string query = R"(SELECT cus_id, cus_fname || ' ' || cus_lname as full_name, 
+                        cus_phone, cus_email, membership_status 
                         FROM customer c JOIN membership m ON c.membership_id = m.membership_id;)";
     if(!prepareStatement(db, query, &stmt))
     {
         cout << "Error selecting customer items: " << sqlite3_errmsg(db) << endl;
-        sqlite3_finalize(stmt);
         return;
     }
 
     string prompt = "Select Customer Record:\n"; 
-
     int cus_id = selectFromList(db, query, prompt);
     sqlite3_finalize(stmt);
 
-    query = R"(SELECT cus_id, cus_fname, cus_lname, cus_phone, cus_email, membership_status "
+    query = R"(SELECT cus_id, cus_fname, cus_lname, cus_phone, cus_email, membership_status 
                 FROM customer c JOIN membership m ON c.membership_id = m.membership_id
                 WHERE cus_id = ?;)";
     if(!prepareStatement(db, query, &stmt))
     {
         cout << "Error selecting Customer: " << sqlite3_errmsg(db) << endl;
-        sqlite3_finalize(stmt);
         return;
     }
     sqlite3_bind_int(stmt, 1, cus_id);
 
-    if (executeStatement(stmt))
+    if (sqlite3_step(stmt) == SQLITE_ROW)
     {
-
-        string cus_fname = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
-        string cus_lname = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
-        string cus_email = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3));
-        string cus_phone = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4));
-        string membership_status = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 5));
-
-        sqlite3_finalize(stmt);
+        const char* fname = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+        const char* lname = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
+        const char* phone = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3));
+        const char* email = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4));
+        const char* status = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 5));
+        
         cout << "Customer Information" << endl;
-        cout << "Customer ID: " << cus_id << endl;;
-        cout << "Name: " << cus_fname + " " + cus_lname << endl;
-        cout << "Phone: " << cus_phone << endl;
-        cout << "Membership status: " << membership_status << endl;
-
+        cout << "Customer ID: " << cus_id << endl;
+        cout << "Name: " << (fname ? fname : "") << " " << (lname ? lname : "") << endl;
+        cout << "Phone: " << (phone ? phone : "") << endl;
+        cout << "Email: " << (email ? email : "") << endl;
+        cout << "Membership status: " << (status ? status : "") << endl;
         cout << "End of customer info." << endl;
     }
     else
-        cout << "Product not found" << endl;
+    {
+        cout << "Customer not found" << endl;
+    }
+    
+    sqlite3_finalize(stmt);
     cout << endl;
 }
 
@@ -1556,12 +1542,10 @@ void viewProduct(sqlite3 *db)
     if(!prepareStatement(db, query, &stmt))
     {
         cout << "Error selecting product items: " << sqlite3_errmsg(db) << endl;
-        sqlite3_finalize(stmt);
         return;
     }
 
     string prompt = "Select Product Record:\n"; 
-
     int p_code = selectFromList(db, query, prompt);
     sqlite3_finalize(stmt);
 
@@ -1570,30 +1554,35 @@ void viewProduct(sqlite3 *db)
                 "WHERE p_code = ?;";
     if(!prepareStatement(db, query, &stmt))
     {
-        cout << "Error selecting Customer: " << sqlite3_errmsg(db) << endl;
-        sqlite3_finalize(stmt);
+        cout << "Error selecting Product: " << sqlite3_errmsg(db) << endl;
         return;
     }
     sqlite3_bind_int(stmt, 1, p_code);
 
-    if(executeStatement(stmt))
+    // CORRECTED: Check for SQLITE_ROW instead of using executeStatement
+    if(sqlite3_step(stmt) == SQLITE_ROW)
     {
-        string p_name = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
-        string category = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
-        double price = (sqlite3_column_double(stmt, 3));
-        int quantity = (sqlite3_column_int(stmt, 4));
-        int min_stock_level = (sqlite3_column_int(stmt, 5));
-        sqlite3_finalize(stmt);
-
-        cout << "Product Information" << endl;
-        cout << "Product ID: " << p_code << endl;;
-        cout << "Name: " << p_name  << "        Category: " << category << "    Price: $" << price << endl;
+        const char* name_ptr = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+        const char* cat_ptr = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
+        
+        string p_name = (name_ptr != nullptr) ? name_ptr : "";
+        string category = (cat_ptr != nullptr) ? cat_ptr : "";
+        double price = sqlite3_column_double(stmt, 3);
+        int quantity = sqlite3_column_int(stmt, 4);
+        int min_stock_level = sqlite3_column_int(stmt, 5);
+        
+        cout << "\nProduct Information" << endl;
+        cout << "Product ID: " << p_code << endl;
+        cout << "Name: " << p_name << "        Category: " << category << "    Price: $" << fixed << setprecision(2) << price << endl;
         cout << "Quantity: " << quantity << "         Minimum stock level: " << min_stock_level << endl;
         cout << "End of product info." << endl;
-
     }
     else
+    {
         cout << "Product not found" << endl;
+    }
+    
+    sqlite3_finalize(stmt);
     cout << endl;
 }
 
