@@ -42,7 +42,7 @@ sudo apt-get install sqlite3 libsqlite3-dev  # Ubuntu/Debian
 brew install sqlite3                          # macOS
 
 # Clone the repository
-git clone https://github.com/yourusername/game-store-management.git
+git clone https://github.com/evayedon/game-store-management.git
 cd game-store-management
 
 # Compile
@@ -202,9 +202,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👨‍💻 Author
 
 **Your Name**
-- GitHub: [@yourusername](https://github.com/yourusername)
-- LinkedIn: [Your LinkedIn](https://linkedin.com/in/yourprofile)
-- Email: your.email@example.com
+- GitHub: [@evayedon](https://github.com/evayedon)
+- LinkedIn: [Your LinkedIn](https://linkedin.com/in/evans-ayensu-donkor-730b30289)
+- Email: optimistdelt80@gmail.com
 
 ## 🙏 Acknowledgments
 
